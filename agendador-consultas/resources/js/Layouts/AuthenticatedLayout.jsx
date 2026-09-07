@@ -30,6 +30,23 @@ export default function AuthenticatedLayout({ header, children }) {
                                 >
                                     Dashboard
                                 </NavLink>
+                                <NavLink 
+                                    href={route('consultas.index')}
+                                    active={route().current('consultas.index')}
+                                    >
+                                    Minhas consultas
+                                </NavLink>
+
+                                {usePage().props.auth.user.role === 'admin' && (
+                                <NavLink
+                                    href={route('painel.index')}
+                                    active={route().current('painel.index')}
+                                      >
+                                        Painel
+                                </NavLink>
+                                )}
+
+
                             </div>
                         </div>
 

@@ -49,10 +49,8 @@ class Consulta extends Model
         return $dataHora->isFuture();
     }
 
-    protected function podeSerAlteradaAttribute(): Attribute
+    public function getPodeSerAlteradaAttribute(): bool
     {
-        return Attribute::make(
-            get: fn () => $this->podeSerAlterada(),
-        );
+        return $this->podeSerAlterada();
     }
 }

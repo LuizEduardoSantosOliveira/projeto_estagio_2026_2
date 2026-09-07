@@ -6,7 +6,7 @@ use Carbon\Carbon;
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
 
-class StoreConsultaRequest extends FormRequest
+class UpdateConsultaRequest extends FormRequest
 {
     public function authorize(): bool
     {
