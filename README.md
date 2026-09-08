@@ -1,336 +1,185 @@
-<img src="logo.png" alt="Mupi Systems Logo" width="200"/>
+# Agendador de Consultas
 
-# Estágio em Tecnologia - Desenvolvimento Full Stack
+Sistema de agendamento de consultas médicas com página pública para o paciente marcar uma consulta e um painel administrativo para o time da clínica acompanhar tudo que chegou.
 
-## Sobre o teste
+Feito como teste técnico para a vaga de Estágio em Tecnologia - Desenvolvimento Full Stack (Mupi Systems).
 
-Bem-vindo(a) ao teste técnico para a vaga de Estágio em Tecnologia - Desenvolvimento Full Stack na Mupi Systems!
+## Sobre o projeto
 
-### O que você vai construir?
+O sistema tem dois tipos de usuário, diferenciados por uma coluna `role` na tabela de usuários:
 
-Um sistema web com três partes:
+- **Paciente**: cria conta, agenda consultas, acompanha e gerencia as próprias solicitações
+- **Admin**: acessa um painel de gestão para visualizar todas as consultas recebidas
 
-1. **Uma página pública**: apresenta um negócio ou projeto de sua escolha e tem um formulário
-2. **Registros no banco**: o que chega pelo formulário é salvo com status "pendente"
-3. **Um painel de gestão**: onde o admin faz login e visualiza tudo que chegou
+### Funcionalidades
 
-E sobre o quê? Isso é 100% seu. Agendamento numa barbearia, inscrição num curso, pedido de orçamento numa assistência técnica, reserva de mesa num restaurante, pedido de adoção numa ONG de animais... qualquer coisa em que alguém de fora envia uma solicitação e alguém de dentro gerencia o que chega.
+- Cadastro e login de paciente (via Laravel Breeze)
+- Agendamento de consulta com tipo, data e horário
+- Consulta nasce sempre com status `pendente`
+- Paciente confirma ou cancela a própria consulta em `/minhas-consultas`
+- Edição de consulta bloqueada quando ela já passou ou foi cancelada (regra centralizada no método `podeSerAlterada()` do model)
+- Painel administrativo com listagem ordenada por data, status visível, contadores e filtro
+- Proteção de rota por autenticação (`middleware auth`) e por papel (`middleware role:admin`)
 
-Essa liberdade não é enfeite: criatividade é o nosso maior critério de avaliação. Tanto na forma de resolver o problema quanto nas escolhas que você faz pelo caminho.
+## Como funciona
 
-Ao longo deste documento vamos chamar essa solicitação de "registro". No seu projeto, dê a ela o nome do seu tema: agendamento, inscrição, pedido, reserva, o que for.
+### Fluxo do paciente
 
-### Como funciona?
+1. Acessa a página pública e cria uma conta (ou faz login, se já tiver)
+2. Preenche o formulário de agendamento: tipo de consulta, data e horário
+3. Envia — a consulta é salva com status `pendente` e o paciente recebe confirmação visual
+4. Acessa `/minhas-consultas` para ver o que já agendou
+5. Pode confirmar uma consulta pendente ou cancelá-la a qualquer momento (enquanto ela ainda puder ser alterada)
+6. Tentar editar uma consulta de outro paciente, mesmo sabendo o ID pela URL, retorna `403` — a permissão é verificada no backend via Policy, não só escondida no frontend
 
-**Visitante**: acessa a página pública, preenche o formulário e envia. O registro é salvo no banco como "pendente".
+### Fluxo do admin
 
-**Administrador**: acessa a rota do painel, faz login e vê a lista de registros ordenada por data (nome, email, data, status...).
+1. Acessa `/painel` sem estar logado → é redirecionado para o login
+2. Faz login com as credenciais do admin (ver seção [Criando o usuário admin](#criando-o-usuário-admin))
+3. Visualiza todas as consultas de todos os pacientes, ordenadas por data, com o status de cada uma visível (badge colorida)
+4. Usa os contadores e o filtro por status para priorizar o que precisa de atenção
+5. Consegue encerrar a sessão (logout)
 
-### O que esperamos?
+Um paciente comum que tenta acessar `/painel` recebe `403` — o acesso é restrito por papel, não só por estar autenticado.
 
-- Que funcione aquilo que você entregou
-- Código que você entende e consegue explicar
-- Decisões conscientes registradas, inclusive as decisões de não fazer algo
-- Pelo menos uma coisa que a gente não pediu (pode ser pequena!)
-- Interface com a cara do tema escolhido, responsiva e limpa
-- README que faz o projeto rodar sem você por perto
+## Modelo de dados
 
-### E antes de tudo: não precisa estar completo
+Cada consulta (`Consulta`) guarda:
 
-Entrega parcial é entrega. Avaliamos o que você fez, não o tamanho do que faltou.
+| Campo | Descrição |
+|---|---|
+| `user_id` | referência ao paciente que agendou (FK para `users`) |
+| `tipo` | uma entre: Clínica Geral, Cardiologia, Dermatologia, Pediatria |
+| `data` | data da consulta |
+| `horario` | horário da consulta |
+| `status` | `pendente`, `confirmado` ou `cancelado` — nasce sempre `pendente` |
+| `observacoes` | campo livre, opcional |
+| `created_at` | data de criação do registro |
 
-O que mais pesa aqui é como você pensa: como prioriza, o que percebe, como decide quando falta tempo ou informação. E isso aparece tão bem numa entrega parcial bem explicada quanto numa completa.
+A tabela `users` (padrão do Breeze) recebeu uma coluna adicional `role`, restrita a `paciente` ou `admin`, usada para diferenciar o que cada tipo de usuário pode acessar.
 
-Se em algum momento a lista abaixo parecer grande demais, leia a seção [E se não der tempo de fazer tudo?](#e-se-não-der-tempo-de-fazer-tudo) antes de desistir.
+## Stack utilizada
 
-## A stack é sua escolha
+- **Backend**: Laravel 11
+- **Autenticação**: Laravel Breeze (stack Inertia + React) — login, cadastro, logout e proteção de rota prontos, sem reinventar
+- **Frontend**: React, renderizado via Inertia.js (sem precisar montar uma API REST separada)
+- **Estilo**: Tailwind CSS v4, cores customizadas via `@theme` no CSS
+- **Banco de dados**: MySQL
+- **Autorização**: Laravel Policies (`ConsultaPolicy`) + middleware de papel (`EnsureUserHasRole`)
 
-Não vamos dizer qual tecnologia usar. Você decide, e essa decisão faz parte da avaliação.
+O porquê de cada escolha, incluindo os trade-offs, está detalhado no `DECISOES.md`.
 
-Laravel, Rails, Express, FastAPI, Next.js, Django, Spring, .NET, Go, Flask... tanto faz. Renderizado no servidor ou SPA, tanto faz. Postgres, MySQL, Mongo ou um SQLite num arquivo, tanto faz.
+## Pré-requisitos
 
-### Um conselho antes de escolher
+- PHP >= 8.2
+- Composer
+- Node.js >= 18 e npm
+- MySQL rodando localmente (ou outro servidor MySQL/MariaDB acessível)
 
-Escolha o que você já conhece. Este não é um teste de aprender stack nova do zero. Escolher algo desconhecido só para impressionar costuma dar errado, e aparece na conversa. Ferramenta que você domina vale mais que ferramenta da moda.
+## Instalação
 
-### O que a escolha precisa entregar
+Clone o repositório e entre na pasta do projeto, depois instale as dependências de backend e frontend:
 
-Seja qual for a stack:
+```bash
+composer install
+npm install
+```
 
-- Roda na máquina de outra pessoa seguindo só o seu README
-- Autenticação pronta é permitida (Auth.js, Supabase, Devise, Passport, a do seu framework...). O que não vale é não saber explicar o que ela faz
-- O sistema é desenvolvido por você, não montado num serviço pronto (Calendly, Google Forms...)
-- Repositório com histórico de commits
+Copie o arquivo de variáveis de ambiente e gere a chave da aplicação:
 
-No `DECISOES.md`, conte por que escolheu essa stack: o que você ganhou e o que perdeu com a escolha.
+```bash
+cp .env.example .env
+php artisan key:generate
+```
 
-## Objetivos
+## Configuração do banco de dados
 
-- Desenvolver uma página pública com formulário funcional
-- Visualizar os registros recebidos em um painel de gestão protegido por login
-- Demonstrar que você consegue ler uma especificação e traduzi-la em código
-- Mostrar capacidade de decidir sob ambiguidade e de organizar código
-- Criar uma interface responsiva e funcional
+Crie um banco de dados MySQL chamado `agenda_consultas` (ou o nome que preferir, desde que ajuste o `.env` de acordo):
 
-## Instruções
+```sql
+CREATE DATABASE agenda_consultas;
+```
 
-### Fork do repositório
+No `.env`, configure a conexão:
 
-1. Faça um fork deste repositório para sua conta pessoal do GitHub
-2. Trabalhe no seu próprio fork
+```env
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=agenda_consultas
+DB_USERNAME=root
+DB_PASSWORD=
+```
 
-### Implementação
+Ajuste `DB_USERNAME` e `DB_PASSWORD` conforme a configuração do seu MySQL local.
 
-Desenvolva o projeto conforme os requisitos abaixo, no tema e na stack que você escolher.
+Rode as migrations (cria as tabelas padrão do Breeze e a tabela `consultas`, além da coluna `role` em `users`):
 
-### Submissão
+```bash
+php artisan migrate
+```
 
-1. Após finalizar, abra um Pull Request do seu fork para o repositório original
-2. Na descrição do PR, inclua:
-   - O que você adicionou além do que foi pedido, e por quê
-   - O que você decidiu não fazer, e por quê
-   - Onde você teve dificuldade
-3. Aguarde o agendamento da reunião para avaliação do teste
+## Criando o usuário admin
 
-### Documentação
+O usuário admin é criado via seeder, não por cadastro público — não existe tela de registro para essa função. Rode:
 
-Dois arquivos no repositório:
+```bash
+php artisan db:seed --class=AdminSeeder
+```
 
-| Arquivo | Conteúdo |
-|---------|----------|
-| `README.md` | Descrição do projeto, stack utilizada e passo a passo para rodar |
-| `DECISOES.md` | Suas decisões (incluindo tema e stack) e como você usou IA |
+**Credenciais de acesso ao painel**:
+- **Email**: `admin@agendador.test`
+- **Senha**: `senha-padrao-dev`
 
-O `DECISOES.md` pode ser curto. Uma página inteira já é mais do que precisamos. Queremos clareza, não volume.
+## Dados de exemplo (opcional)
 
-## Requisitos funcionais
+Para popular o banco com pacientes e consultas fictícias, útil pra não testar o painel vazio:
 
-Descritos por comportamento, não por tecnologia. Como implementar é com você.
+```bash
+php artisan db:seed
+```
 
-### Dados
+Isso roda o `DatabaseSeeder` completo, que garante a criação do admin e gera consultas de exemplo via `ConsultaFactory`, cada uma vinculada a um paciente fictício também criado na hora.
 
-Um registro precisa guardar:
+## Subindo a aplicação
 
-| Campo | Observação |
-|-------|------------|
-| **nome** | Nome de quem preencheu o formulário |
-| **email** | Email de quem preencheu |
-| **tipo** | Valor restrito a uma lista de pelo menos 3 opções, definidas por você conforme o tema (serviços, turmas, tipos de pedido...) |
-| **data** | Uma data que faça sentido no seu tema: data do agendamento, do evento, da reserva, prazo desejado... |
-| **horário** | Se fizer sentido no tema. Um agendamento tem horário; um pedido de orçamento talvez não. Se não tiver, troque por outro campo que o seu tema pedir |
-| **status** | Restrito a: `pendente`, `confirmado`, `cancelado`. Nasce sempre como `pendente` |
-| **criado_em** | Quando o registro foi criado |
+Em dois terminais separados, na raiz do projeto:
 
-Os nomes dos campos são seus: em português, em inglês, camelCase, o que a sua stack pedir. O que importa é a informação estar lá.
+```bash
+php artisan serve
+```
+```bash
+npm run dev
+```
 
-### Comportamentos
+A aplicação responde em `http://localhost:8000`. O segundo comando precisa continuar rodando em segundo plano — é ele quem compila o frontend React em tempo real.
 
-| # | O que precisa acontecer |
-|---|--------------------------|
-| 1 | Visitante acessa a página pública e vê informações do negócio/projeto e as opções oferecidas |
-| 2 | Visitante envia o formulário e o registro é persistido com status `pendente` |
-| 3 | Visitante recebe confirmação visual de que o envio deu certo |
-| 4 | Visitante que tenta acessar o painel sem estar autenticado é barrado e enviado para o login |
-| 5 | Admin faz login com credenciais válidas e chega no painel |
-| 6 | Painel lista todos os registros, ordenados por data, com o status de cada um visível |
-| 7 | Admin consegue encerrar a sessão (logout) |
+## Rotas principais
 
-O item 4 é o que mais gente esquece de testar. Abra uma aba anônima e tente acessar o painel direto pela URL.
+| Rota | Acesso | Descrição |
+|---|---|---|
+| `/` | público | tela de login (rota raiz do projeto) |
+| `/register` | público | cadastro do paciente (Breeze) |
+| `/minhas-consultas` | paciente autenticado | lista as próprias consultas |
+| `/consultas/{id}/editar` | paciente autenticado, dono | edita uma consulta própria |
+| `/painel` | admin autenticado | lista todas as consultas do sistema |
 
-### Interface
+## Como foi validado
 
-- Design responsivo (mobile e desktop)
-- Status de cada registro visualmente identificável no painel (ex: badge colorida)
+Como o projeto não tem testes automatizados (ver seção abaixo), a validação foi feita com um roteiro de testes manuais cobrindo os pontos mais sensíveis de autorização:
 
-#### Sobre CSS
+1. Paciente A cria uma consulta
+2. Paciente B tenta editar a consulta do A pela URL direta → `403`
+3. Paciente A confirma a consulta, tenta confirmar de novo → bloqueado
+4. Paciente A cancela a consulta, tenta editar depois → `403`
+5. Admin loga e acessa `/painel` → vê a listagem, contadores e filtro
+6. Usuário desloga e tenta acessar `/painel` direto pela URL, em aba anônima → redirecionado para o login
+7. Paciente comum tenta acessar `/painel` → `403`
 
-Use o que quiser: Tailwind (via CDN, uma linha no `<head>`), CSS puro, a biblioteca de componentes da sua stack, o que for. Só não gaste tempo configurando toolchain. Batalhar com build de CSS não é o que estamos avaliando, então escolha o caminho mais curto até o resultado visual.
+## Testes automatizados
 
-### Qualidade de código
+Este projeto não possui testes automatizados. A validação foi feita manualmente, conforme o roteiro acima — essa decisão consciente está registrada no `DECISOES.md`.
 
-- Código organizado e legível
-- Estrutura de projeto coerente com as convenções da stack escolhida
-- README com instruções claras
+## Decisões de projeto
 
-## O que a especificação não diz
-
-Esta especificação deixa espaço em aberto de propósito, e cada tema cria as próprias perguntas. Um exemplo que vale para qualquer tema: como fica o painel quando ainda não chegou nenhum registro? Outras vão aparecer conforme o que você escolher construir.
-
-Você não precisa resolver tudo que encontrar. Precisa perceber que existe e registrar o que decidiu. Duas ou três linhas por item, no `DECISOES.md`, já valem nota cheia.
-
-## Além do mínimo
-
-Os requisitos acima são o piso. Entregar tudo que foi pedido, bem feito, já é uma boa entrega. O que faz a gente lembrar de você é o que vem além. E "além" aqui é algo pequeno, não é outro projeto.
-
-### 1. Escolha 2 ou 3 melhorias e faça bem feito
-
-Três coisas caprichadas valem mais que dez pela metade. Lista longa com acabamento zero conta contra, não a favor.
-
-### 2. Adicione pelo menos uma coisa que não pedimos
-
-Você é o desenvolvedor do produto. Olhe para a tela de quem vai gerenciar isso e pergunte: o que falta aqui para ser realmente usável na segunda-feira de manhã?
-
-Pode ser simples. Implemente e explique no PR por que aquilo importa.
-
-### 3. Diga o que você decidiu não fazer
-
-Liste no PR o que ficou de fora de propósito e o motivo. Saber cortar escopo vale tanto quanto saber implementar.
-
-<details>
-<summary><b>Sem ideias do que fazer a mais? (abra só se precisar)</b></summary>
-
-Coisas que costumam fazer sentido nesse tipo de sistema. Não é um checklist: se você só executar essa lista, o resultado é o de todo mundo.
-
-- Visual atraente: cores e tipografia harmoniosas, com a "cara" do tema escolhido
-- Confirmar/cancelar registros: ações no painel para mudar o status
-- Validação de formulários, no frontend e no backend
-- Evitar conflitos: impedir dois registros no mesmo horário, na mesma vaga, o que valer no seu tema
-- Feedback visual: mensagem de sucesso após enviar e nas ações do painel
-- Interatividade sem recarregar a página, via a abordagem da sua stack
-- Filtros ou busca por status, data ou nome
-- Campos adicionais: telefone, observações, etc.
-- Paginação na listagem
-- Resumo no painel: contadores (total de pendentes, confirmados hoje...)
-
-</details>
-
-## Critérios de avaliação
-
-Vale repetir o que já dissemos lá em cima: o que mais avaliamos é criatividade. No tema, na solução, nos detalhes que você escolhe cuidar. Os critérios abaixo existem para dar chão a isso.
-
-### O básico: o que esperamos ver de pé
-
-- Formulário salva o registro no banco
-- Painel lista os registros ordenados por data, com o status visível
-- Login protege o painel
-- O projeto roda seguindo o seu próprio README, sem passo faltando
-
-Fechou esses quatro? Você fez o teste. O que vem abaixo é o que diferencia uma entrega da outra.
-
-Não fechou algum? Não é eliminatório. Conte no PR o que ficou faltando e por quê. O raciocínio conta.
-
-### Desempate: o que faz a gente lembrar de você
-
-| O que olhamos | Como aparece na prática |
-|---------------|--------------------------|
-| Criatividade | O tema, a solução e os detalhes têm a sua cara, não a cara de um tutorial |
-| Julgamento | Percebeu as ambiguidades da especificação e decidiu conscientemente |
-| Escolha de ferramenta | A stack faz sentido para o problema e você sabe dizer por que escolheu |
-| Iniciativa | Adicionou algo que não pedimos e soube dizer por que importa |
-| Priorização | Cortou escopo de propósito e explicou o corte |
-| Domínio | Entende o que entregou e consegue conversar sobre o próprio código |
-| Cuidado | Página com a cara do tema, estados vazios tratados, responsivo testado no celular |
-| Comunicação | README claro, PR bem escrito, commits que contam a história do trabalho |
-
-Não avaliamos qual tema nem qual stack você escolheu. Avaliamos se as escolhas foram conscientes e se você domina o que escolheu.
-
-## Diretrizes criativas
-
-### Página pública
-
-Liberdade criativa total: escolha qualquer tema em que uma pessoa envia uma solicitação e um admin gerencia, real ou fictício.
-
-Alguns exemplos, só para destravar:
-
-- Barbearia ou salão: agendamento de horário
-- Clínica (médica, odontológica, fisioterapia...): agendamento de consulta
-- Curso, workshop ou aula experimental: inscrição
-- Assistência técnica ou marcenaria: pedido de orçamento
-- Restaurante ou espaço de eventos: reserva
-- ONG de animais: pedido de adoção
-- Estúdio fotográfico: agendamento de ensaio
-- Ou qualquer outra combinação que você inventar
-
-A estrutura da página é livre. Poucas seções bem feitas valem mais que muitas espremidas, e não precisa ser uma landing page de agência.
-
-### Painel de gestão
-
-Um painel próprio para visualizar os registros, com acesso controlado por autenticação.
-
-#### O fluxo que precisa funcionar
-
-1. Visitante acessa a rota do painel
-2. Como não está autenticado, é redirecionado para a tela de login
-3. Admin faz login com credenciais válidas
-4. É levado ao painel
-5. Vê todos os registros, ordenados por data
-6. Consegue sair da sessão quando quiser
-
-#### O que você precisa montar
-
-| Peça | O que faz |
-|------|-----------|
-| Usuário admin | Um usuário com acesso ao painel. Documente no README como criá-lo |
-| Tela de login | Formulário de autenticação. Pode ser simples, não avaliamos o design dela |
-| Proteção da rota | Sem sessão válida, o painel não abre. Nem pela URL direta |
-| Logout | Um jeito de encerrar a sessão |
-| Listagem | Os campos do registro, com status visível, ordenados por data. Aqui vale caprichar |
-
-Use a autenticação pronta da sua stack. Reinventar login do zero não impressiona ninguém. O que queremos ver é você sabendo usar e explicar a que já existe.
-
-## Rodando o projeto
-
-Como o seu projeto sobe depende da stack que você escolheu, então quem escreve essa parte é você, no README do seu repositório.
-
-O critério é simples, e a gente vai testar de verdade: uma pessoa que nunca viu seu projeto consegue clonar, seguir o seu README e ver a aplicação funcionando no navegador?
-
-Na prática, isso costuma significar cobrir:
-
-- Pré-requisitos (versão de linguagem, runtime, banco de dados...)
-- Instalação das dependências
-- Variáveis de ambiente, se houver (inclua um `.env.example`)
-- Preparo do banco (migrations, seed...)
-- Como criar o usuário admin
-- Como subir a aplicação e em qual endereço ela responde
-
-O passo do usuário admin é o que mais falta nas entregas. Se a gente não conseguir entrar no painel, metade do teste fica invisível. Vale testar seu próprio README numa pasta limpa antes de enviar.
-
-## Notas importantes
-
-- Funcionar é pré-requisito. O diferencial é o cuidado e as decisões
-- Se a lista parecer grande, corte, e conte no PR o que cortou e por quê
-- Queremos ver o processo: commits incrementais com mensagens que fazem sentido valem mais que um único commit "projeto final"
-- Documentação, Stack Overflow, IA: tudo liberado. Veja a seção sobre IA abaixo
-- Simples e bem feito é melhor que complexo e quebrado
-
-## E se não der tempo de fazer tudo?
-
-Está tudo bem. Sério.
-
-Entregue do jeito que estiver e conte no Pull Request:
-
-- O que você conseguiu fazer
-- Onde travou, e o que tentou antes de travar
-- O que faria diferente com mais tempo
-
-Avaliamos o que você fez, não o tamanho do que faltou. Um projeto com metade dos requisitos e um raciocínio claro por trás das escolhas vale mais, para nós, do que um projeto completo que o candidato não sabe explicar.
-
-E vale repetir, porque é o que mais importa: o que estamos avaliando é a forma como você pensa. Como você prioriza, o que percebe, como decide quando falta tempo ou informação. Isso aparece igualmente bem numa entrega parcial. Às vezes até melhor, porque é justamente ao priorizar que a cabeça de alguém fica visível.
-
-O único cenário ruim é não entregar. Se você chegou até aqui, abra o PR. 😊
-
-## Sobre o uso de IA
-
-Assumimos que você vai usar IA. Nós usamos. Não tem problema nenhum nisso.
-
-Mas isso muda o que estamos avaliando. Se a IA escreve o CRUD em 20 minutos, o CRUD não diz nada sobre você. O que diz é o que você faz depois: o que percebeu que faltava, o que recusou da sugestão dela, e o que decidiu por conta própria.
-
-### No seu `DECISOES.md`
-
-Além das decisões técnicas, inclua uma seção curta sobre IA respondendo:
-
-1. O que você delegou para a IA e o que fez à mão, e por quê
-2. Uma vez em que a IA te deu algo ruim ou errado: o que era, como você percebeu, e o que fez no lugar
-3. Uma decisão que você tomou contra a sugestão da IA, e o motivo
-
-A pergunta 2 é a que mais nos interessa. Quem usa IA de verdade sempre tem essa história. Quem só copia e cola, não tem.
-
-Três parágrafos curtos resolvem. Não precisa de mais que isso.
-
-### E depois, na conversa
-
-Vamos conversar sobre o que você construiu: por que fez de um jeito e não de outro, o que te deu trabalho, o que você mudaria. Não é sabatina. É a mesma conversa que temos entre a gente quando alguém abre um PR.
-
-Por isso vale entregar código que você entende. Não porque vamos cobrar linha por linha, mas porque essa conversa é a parte mais interessante do processo, e é onde você tem mais espaço para mostrar como pensa.
-
-Boa sorte! A gente se vê na conversa.
+As decisões conscientes tomadas ao longo do desenvolvimento — incluindo ambiguidades da especificação, trade-offs de modelagem e o uso de IA — estão documentadas no `DECISOES.md`.
