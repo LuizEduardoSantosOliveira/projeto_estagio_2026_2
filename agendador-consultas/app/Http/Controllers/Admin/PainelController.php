@@ -13,6 +13,7 @@ class PainelController extends Controller
     {
         $consultas = Consulta::with('user')
             ->when(request('status'), fn ($q) => $q->where('status', request('status')))
+            ->when(request('tipo'), fn ($q) => $q->where('tipo', request('tipo')))
             ->when(request('data'), fn ($q) => $q->whereDate('data', request('data')))
             ->when(request('paciente'), function ($q) {
                 $q->whereHas('user', fn ($sub) => $sub->where('name', 'like', '%' . request('paciente') . '%'));
@@ -22,14 +23,14 @@ class PainelController extends Controller
 
         $contadores = [
             'pendentes' => Consulta::where('status', 'pendente')->count(),
-            'confirmadas_hoje' => Consulta::where('status', 'confirmado')->whereDate('data', today())->count(),
+            'confirmadas' => Consulta::where('status', 'confirmado')->count(),
             'canceladas' => Consulta::where('status', 'cancelado')->count(),
         ];
 
         return Inertia::render('Admin/Painel', [
             'consultas' => $consultas,
             'contadores' => $contadores,
-            'filtros' => request()->only(['status', 'data', 'paciente']),
+            'filtros' => request()->only(['status', 'tipo', 'data', 'paciente']),
         ]);
     }
 }

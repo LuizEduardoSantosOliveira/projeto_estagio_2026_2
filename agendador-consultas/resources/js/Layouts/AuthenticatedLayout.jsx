@@ -24,26 +24,23 @@ export default function AuthenticatedLayout({ header, children }) {
                             </div>
 
                             <div className="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex">
-                                <NavLink
-                                    href={route('dashboard')}
-                                    active={route().current('dashboard')}
-                                >
-                                    Dashboard
-                                </NavLink>
-                                <NavLink 
+
+                                {usePage().props.auth.user.role === 'paciente' && (
+                                 <NavLink
                                     href={route('consultas.index')}
                                     active={route().current('consultas.index')}
-                                    >
-                                    Minhas consultas
+                                   >
+                                     Minhas consultas
                                 </NavLink>
+                                )}
 
                                 {usePage().props.auth.user.role === 'admin' && (
-                                <NavLink
+                                <ResponsiveNavLink
                                     href={route('painel.index')}
                                     active={route().current('painel.index')}
-                                      >
-                                        Painel
-                                </NavLink>
+                                    >
+                                 Painel
+                                </ResponsiveNavLink>
                                 )}
 
 
@@ -145,12 +142,23 @@ export default function AuthenticatedLayout({ header, children }) {
                     }
                 >
                     <div className="space-y-1 pb-3 pt-2">
-                        <ResponsiveNavLink
-                            href={route('dashboard')}
-                            active={route().current('dashboard')}
-                        >
-                            Dashboard
-                        </ResponsiveNavLink>
+                       {usePage().props.auth.user.role === 'paciente' && (
+                                 <ResponsiveNavLink
+                                    href={route('consultas.index')}
+                                    active={route().current('consultas.index')}
+                                   >
+                                     Minhas consultas
+                                </ResponsiveNavLink>
+                        )}
+
+                        {usePage().props.auth.user.role === 'admin' && (
+                                <ResponsiveNavLink
+                                    href={route('painel.index')}
+                                    active={route().current('painel.index')}
+                                    >
+                                 Painel
+                                </ResponsiveNavLink>
+                        )}
                     </div>
 
                     <div className="border-t border-gray-200 pb-1 pt-4">

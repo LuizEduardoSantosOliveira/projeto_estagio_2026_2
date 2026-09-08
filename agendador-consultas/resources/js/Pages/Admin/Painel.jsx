@@ -4,12 +4,13 @@ import { useState } from 'react';
 
 export default function Painel({ consultas, contadores, filtros }) {
     const [status, setStatus] = useState(filtros.status ?? '');
+    const [tipo, setTipo] = useState(filtros.tipo ?? '');
     const [data, setData] = useState(filtros.data ?? '');
     const [paciente, setPaciente] = useState(filtros.paciente ?? '');
 
     function aplicarFiltros(e) {
         e.preventDefault();
-        router.get(route('painel.index'), { status, data, paciente }, { preserveState: true });
+        router.get(route('painel.index'), { status, tipo,data, paciente }, { preserveState: true });
     }
 
     return (
@@ -24,7 +25,7 @@ export default function Painel({ consultas, contadores, filtros }) {
                             <p className="text-sm text-gray-500">Pendentes</p>
                         </div>
                         <div className="bg-white p-4 text-center shadow sm:rounded-lg">
-                            <p className="text-2xl font-bold">{contadores.confirmadas_hoje}</p>
+                            <p className="text-2xl font-bold">{contadores.confirmadas}</p>
                             <p className="text-sm text-gray-500">Confirmadas hoje</p>
                         </div>
                         <div className="bg-white p-4 text-center shadow sm:rounded-lg">
@@ -39,6 +40,13 @@ export default function Painel({ consultas, contadores, filtros }) {
                             <option value="pendente">Pendente</option>
                             <option value="confirmado">Confirmado</option>
                             <option value="cancelado">Cancelado</option>
+                        </select>
+                        <select value={tipo} onChange={(e) => setTipo(e.target.value)} className="rounded-md border-gray-300">
+                            <option value="">Todas as especialidades</option>
+                            <option value="Clínica Geral">Clínica Geral</option>
+                            <option value="Cardiologia">Cardiologia</option>
+                            <option value="Dermatologia">Dermatologia</option>
+                            <option value="Pediatria">Pediatria</option>
                         </select>
                         <input
                             type="date"

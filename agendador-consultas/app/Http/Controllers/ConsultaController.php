@@ -55,17 +55,17 @@ class ConsultaController extends Controller
 
     public function update(UpdateConsultaRequest $request, Consulta $consulta): RedirectResponse
     {
-        $this->authorize('update', $consulta);
+    $this->authorize('update', $consulta);
 
-        $consulta->fill($request->validated());
+    $consulta->fill($request->validated());
 
-        if ($consulta->isDirty('data') && $consulta->getOriginal('status') === 'confirmado') {
-            $consulta->status = 'pendente';
-        }
+    if ($consulta->isDirty(['tipo', 'data', 'horario', 'observacoes']) && $consulta->getOriginal('status') === 'confirmado') {
+        $consulta->status = 'pendente';
+    }
 
-        $consulta->save();
+    $consulta->save();
 
-        return redirect()->route('consultas.index')->with('success', 'Consulta atualizada.');
+    return redirect()->route('consultas.index')->with('success', 'Consulta atualizada.');
     }
 
     public function confirm(Consulta $consulta): RedirectResponse

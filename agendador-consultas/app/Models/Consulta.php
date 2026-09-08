@@ -25,10 +25,10 @@ class Consulta extends Model
 
     protected function casts(): array
     {
-        return [
-            'data' => 'date',
-            'horario' => 'datetime:H:i',
-        ];
+    return [
+        'data' => 'date:Y-m-d',
+        'horario' => 'datetime:H:i',
+    ];
     }
 
     public function user(): BelongsTo
