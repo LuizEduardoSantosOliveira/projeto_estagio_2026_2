@@ -25,13 +25,20 @@ export default function Login({ status, canResetPassword }) {
         <GuestLayout>
             <Head title="Entrar" />
 
+            <div className="mb-6">
+                <h1 className="text-lg font-semibold text-clinical-900">Acesse sua conta</h1>
+                <p className="mt-1 text-sm text-gray-500">
+                    Entre para marcar ou gerenciar suas consultas.
+                </p>
+            </div>
+
             {status && (
-                <div className="mb-4 text-sm font-medium text-green-600">
+                <div className="mb-4 border border-clinical-200 bg-clinical-50 px-4 py-3 text-sm text-clinical-800 rounded-md">
                     {status}
                 </div>
             )}
 
-            <form onSubmit={submit}>
+            <form onSubmit={submit} className="space-y-5">
                 <div>
                     <InputLabel htmlFor="email" value="E-mail" />
 
@@ -49,7 +56,7 @@ export default function Login({ status, canResetPassword }) {
                     <InputError message={errors.email} className="mt-2" />
                 </div>
 
-                <div className="mt-4">
+                <div>
                     <InputLabel htmlFor="password" value="Senha" />
 
                     <TextInput
@@ -65,44 +72,36 @@ export default function Login({ status, canResetPassword }) {
                     <InputError message={errors.password} className="mt-2" />
                 </div>
 
-                <div className="mt-4 block">
+                <div className="flex items-center justify-between">
                     <label className="flex items-center">
                         <Checkbox
                             name="remember"
                             checked={data.remember}
-                            onChange={(e) =>
-                                setData('remember', e.target.checked)
-                            }
+                            onChange={(e) => setData('remember', e.target.checked)}
                         />
-                        <span className="ms-2 text-sm text-gray-600">
-                            Lembrar de mim
-                        </span>
+                        <span className="ms-2 text-sm text-gray-600">Lembrar de mim</span>
                     </label>
+
+                    {canResetPassword && (
+                        <Link
+                            href={route('password.request')}
+                            className="text-sm text-clinical-600 underline hover:text-clinical-800"
+                        >
+                            Esqueceu sua senha?
+                        </Link>
+                    )}
                 </div>
 
-                <div className="mt-4 flex items-center justify-between">
-                    <Link
-                        href={route('register')}
-                        className="rounded-md text-sm text-gray-600 underline hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
-                    >
-                        Não tem uma conta? Cadastre-se
+                <PrimaryButton className="w-full justify-center" disabled={processing}>
+                    Entrar
+                </PrimaryButton>
+
+                <p className="text-center text-sm text-gray-500">
+                    Não tem uma conta?{' '}
+                    <Link href={route('register')} className="font-medium text-clinical-600 underline hover:text-clinical-800">
+                        Cadastre-se
                     </Link>
-
-                    <div className="flex items-center">
-                        {canResetPassword && (
-                            <Link
-                                href={route('password.request')}
-                                className="rounded-md text-sm text-gray-600 underline hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
-                            >
-                                Esqueceu sua senha?
-                            </Link>
-                        )}
-
-                        <PrimaryButton className="ms-4" disabled={processing}>
-                            Entrar
-                        </PrimaryButton>
-                    </div>
-                </div>
+                </p>
             </form>
         </GuestLayout>
     );

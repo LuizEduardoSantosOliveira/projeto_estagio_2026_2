@@ -1,3 +1,16 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+
+@theme {
+    --font-sans: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+
+    --color-clinical-50: #F4F8FB;
+    --color-clinical-100: #E4EEF5;
+    --color-clinical-200: #C7DCE9;
+    --color-clinical-300: #9BC0D9;
+    --color-clinical-400: #5FA8D3;
+    --color-clinical-500: #1D6FA5;
+    --color-clinical-600: #175D8C;
+    --color-clinical-700: #134A70;
+    --color-clinical-800: #0F3D5C;
+    --color-clinical-900: #0B2E45;
+}
